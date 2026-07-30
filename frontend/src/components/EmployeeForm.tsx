@@ -12,7 +12,7 @@ export interface EmployeeFormValues {
   emergency_contact: string;
   job_title: string;
   department_id: string;
-  branch_id: string;
+  branch: string;
   employment_type: string;
   employment_category: string;
   date_hired: string;
@@ -26,7 +26,7 @@ export interface EmployeeFormValues {
 
 const EMPTY: EmployeeFormValues = {
   full_name: "", national_id: "", gender: "", dob: "", phone: "", email: "", address: "",
-  emergency_contact: "", job_title: "", department_id: "", branch_id: "", employment_type: "Full-Time",
+  emergency_contact: "", job_title: "", department_id: "", branch: "", employment_type: "Full-Time",
   employment_category: "Permanent", date_hired: "", salary: "", bank_details: "", kra_pin: "",
   nssf_number: "", sha_number: "", next_of_kin: "",
 };
@@ -101,10 +101,16 @@ export default function EmployeeForm({
         <div className="mt-2 grid grid-cols-2 gap-3">
           <Field label="Job title"><input className={inputCls} value={values.job_title} onChange={(e) => set("job_title", e.target.value)} /></Field>
           <Field label="Branch">
-            <select className={inputCls} value={values.branch_id} onChange={(e) => set("branch_id", e.target.value)}>
-              <option value="">Select branch</option>
-              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <input
+              className={inputCls}
+              list="branch-options"
+              value={values.branch}
+              onChange={(e) => set("branch", e.target.value)}
+              placeholder="Pick an existing branch or type a new one"
+            />
+            <datalist id="branch-options">
+              {branches.map((b) => <option key={b.id} value={b.name} />)}
+            </datalist>
           </Field>
           <Field label="Department">
             <select className={inputCls} value={values.department_id} onChange={(e) => set("department_id", e.target.value)}>

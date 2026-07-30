@@ -47,7 +47,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 }`
               }
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5 shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
                 {ICONS[item.icon]}
               </svg>
               {item.label}
@@ -69,7 +69,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               className="focus-ring rounded-lg p-1.5 text-sand-50/50 hover:bg-white/5 hover:text-sand-50"
               title="Sign out"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4.5 w-4.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
               </svg>
             </button>

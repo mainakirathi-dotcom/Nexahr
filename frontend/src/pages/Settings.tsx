@@ -13,6 +13,7 @@ export default function Settings() {
   const [newDept, setNewDept] = useState("");
   const [newDeptBranch, setNewDeptBranch] = useState("");
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "hr_manager" });
+  const [backingUp, setBackingUp] = useState(false);
 
   async function loadAll() {
     const [b, d, u] = await Promise.all([
@@ -52,6 +53,26 @@ export default function Settings() {
         a.href = url; a.download = path.split("/").pop() || "report.csv";
         a.click(); URL.revokeObjectURL(url);
       });
+  }
+
+  async function downloadBackup() {
+    setBackingUp(true);
+    try {
+      const token = localStorage.getItem("nexahr_token");
+      const res = await fetch(`${API_BASE}/backup/export`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Backup failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `nexahr-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Backup download failed. Please check your connection and try again.");
+    } finally {
+      setBackingUp(false);
+    }
   }
 
   return (
@@ -120,6 +141,23 @@ export default function Settings() {
               </li>
             ))}
           </ul>
+        </div>
+
+        {/* Full data backup */}
+        <div className="rounded-2xl border border-gold-500/30 bg-gold-500/5 p-5 shadow-card lg:col-span-2">
+          <p className="text-sm font-semibold text-ink-900">Full Data Backup</p>
+          <p className="mt-1 text-xs text-ink-900/50">
+            Download everything — every employee record, performance review, status change, and uploaded
+            document — as a single file you keep on your own computer. User passwords are never included.
+            Do this regularly, especially after HR makes significant updates.
+          </p>
+          <button
+            onClick={downloadBackup}
+            disabled={backingUp}
+            className="focus-ring mt-3 rounded-lg bg-ink-950 px-4 py-2.5 text-sm font-semibold text-sand-50 hover:opacity-90 disabled:opacity-50"
+          >
+            {backingUp ? "Preparing backup…" : "⬇ Download Full Backup"}
+          </button>
         </div>
 
         {/* Reports */}

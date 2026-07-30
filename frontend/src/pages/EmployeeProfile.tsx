@@ -251,7 +251,7 @@ export default function EmployeeProfile() {
             full_name: employee.full_name, national_id: employee.national_id || "", gender: employee.gender || "",
             dob: employee.dob || "", phone: employee.phone || "", email: employee.email || "", address: employee.address || "",
             emergency_contact: employee.emergency_contact || "", job_title: employee.job_title || "",
-            department_id: employee.department_id || "", branch_id: employee.branch_id || "",
+            department_id: employee.department_id || "", branch: employee.branch_name || "",
             employment_type: employee.employment_type || "Full-Time", employment_category: employee.employment_category || "Permanent",
             date_hired: employee.date_hired || "", salary: String(employee.salary || ""), bank_details: employee.bank_details || "",
             kra_pin: employee.kra_pin || "", nssf_number: employee.nssf_number || "", sha_number: employee.sha_number || "",
@@ -370,7 +370,7 @@ function DocumentsPanel({ employeeId, docs, canEdit, onChange }: { employeeId: s
   const [docType, setDocType] = useState("CV");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const apiBase = (import.meta.env.VITE_API_URL || "http://localhost:4000/api").replace(/\/api$/, "");
+  const [openingId, setOpeningId] = useState<number | null>(null);
 
   async function handleUpload() {
     if (!file) return;
@@ -387,6 +387,21 @@ function DocumentsPanel({ employeeId, docs, canEdit, onChange }: { employeeId: s
   async function handleDelete(id: number) {
     await api.delete(`/documents/${id}`);
     onChange();
+  }
+
+  // The file lives in Postgres behind the same JWT auth as every other request, so a
+  // plain <a href> won't work (the browser wouldn't send the Authorization header).
+  // Instead we fetch it as a blob, then open that in a new tab.
+  async function handleView(doc: any) {
+    setOpeningId(doc.id);
+    try {
+      const res = await api.get(`/documents/${doc.id}/file`, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } finally {
+      setOpeningId(null);
+    }
   }
 
   return (
@@ -413,7 +428,9 @@ function DocumentsPanel({ employeeId, docs, canEdit, onChange }: { employeeId: s
                 <p className="text-xs text-ink-900/40">{d.doc_type} · {new Date(d.uploaded_at).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-3">
-                <a href={`${apiBase}/uploads/${d.file_path}`} target="_blank" rel="noreferrer" className="text-xs font-medium text-teal-600 hover:underline">View</a>
+                <button onClick={() => handleView(d)} disabled={openingId === d.id} className="text-xs font-medium text-teal-600 hover:underline disabled:opacity-50">
+                  {openingId === d.id ? "Opening…" : "View"}
+                </button>
                 {canEdit && <button onClick={() => handleDelete(d.id)} className="text-xs font-medium text-red-500 hover:underline">Delete</button>}
               </div>
             </div>
