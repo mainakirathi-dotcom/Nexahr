@@ -1,6 +1,8 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useOrg } from "../context/OrgContext";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: "grid" },
@@ -16,11 +18,14 @@ const ICONS: Record<string, ReactNode> = {
   chart: <path d="M4 20V10m6 10V4m6 16v-7" />,
   settings: <path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.3.9a7 7 0 00-2-1.2L14 3h-4l-.6 2.5a7 7 0 00-2 1.2l-2.3-.9-2 3.4 2 1.6a7 7 0 000 2.4l-2 1.6 2 3.4 2.3-.9a7 7 0 002 1.2L10 21h4l.6-2.5a7 7 0 002-1.2l2.3.9 2-3.4-2-1.6c.07-.4.1-.8.1-1.2z" />,
   log: <path d="M4 6h16M4 12h16M4 18h10" />,
+  building: <path d="M3 21h18M6 21V5a1 1 0 011-1h6a1 1 0 011 1v16M18 21V9a1 1 0 00-1-1h-3M9 7h.01M9 11h.01M9 15h.01" />,
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const { isPlatformAdmin, activeOrgId, activeOrgName, organizations, setActiveOrg } = useOrg();
   const navigate = useNavigate();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-sand-50">
@@ -35,7 +40,44 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <nav className="mt-4 flex-1 space-y-1 px-3">
+        {isPlatformAdmin && (
+          <div className="relative px-3 pb-3">
+            <button
+              onClick={() => setSwitcherOpen((v) => !v)}
+              className="focus-ring flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-left"
+            >
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-sand-50/40">Viewing company</p>
+                <p className="truncate text-sm font-semibold">{activeOrgName || "Select a company"}</p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 shrink-0 text-sand-50/50">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+
+            {switcherOpen && (
+              <div className="absolute left-3 right-3 z-20 mt-1 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-ink-900 shadow-2xl">
+                {organizations.map((org) => (
+                  <button
+                    key={org.id}
+                    onClick={() => { setActiveOrg(org.id, org.name); setSwitcherOpen(false); navigate("/"); }}
+                    className={`focus-ring block w-full truncate px-3 py-2 text-left text-sm hover:bg-white/5 ${org.id === activeOrgId ? "text-gold-400 font-semibold" : "text-sand-50/80"}`}
+                  >
+                    {org.name}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setSwitcherOpen(false); navigate("/companies"); }}
+                  className="focus-ring block w-full border-t border-white/10 px-3 py-2 text-left text-sm font-medium text-teal-400 hover:bg-white/5"
+                >
+                  Manage all companies →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <nav className="mt-2 flex-1 space-y-1 px-3">
           {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user?.role || "")).map((item) => (
             <NavLink
               key={item.to}
@@ -53,6 +95,21 @@ export default function Layout({ children }: { children: ReactNode }) {
               {item.label}
             </NavLink>
           ))}
+          {isPlatformAdmin && (
+            <NavLink
+              to="/companies"
+              className={({ isActive }) =>
+                `focus-ring flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  isActive ? "bg-gold-500 text-ink-950" : "text-sand-50/60 hover:bg-white/5 hover:text-sand-50"
+                }`
+              }
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                {ICONS.building}
+              </svg>
+              Companies
+            </NavLink>
+          )}
         </nav>
 
         <div className="border-t border-white/10 px-4 py-4">
@@ -62,7 +119,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{user?.name}</p>
-              <p className="truncate text-[11px] capitalize text-sand-50/40">{user?.role?.replace("_", " ")}</p>
+              <p className="truncate text-[11px] capitalize text-sand-50/40">
+                {isPlatformAdmin ? "Platform Super Admin" : user?.role?.replace("_", " ")}
+              </p>
             </div>
             <button
               onClick={() => { logout(); navigate("/login"); }}

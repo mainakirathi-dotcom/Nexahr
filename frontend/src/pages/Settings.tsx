@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import api from "../api/client";
 import Layout from "../components/Layout";
-
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:4000/api");
+import { useOrg } from "../context/OrgContext";
 
 export default function Settings() {
+  const { isPlatformAdmin, activeOrgName } = useOrg();
   const [branches, setBranches] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -12,7 +12,7 @@ export default function Settings() {
   const [newBranchLoc, setNewBranchLoc] = useState("");
   const [newDept, setNewDept] = useState("");
   const [newDeptBranch, setNewDeptBranch] = useState("");
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "hr_manager" });
+  const [newUser, setNewUser] = useState({ name: "", email: "", password: "" });
   const [backingUp, setBackingUp] = useState(false);
 
   async function loadAll() {
@@ -36,36 +36,30 @@ export default function Settings() {
   }
   async function addUser() {
     if (!newUser.name || !newUser.email || !newUser.password) return;
-    await api.post("/users", newUser);
-    setNewUser({ name: "", email: "", password: "", role: "hr_manager" }); loadAll();
+    await api.post("/users", { ...newUser, role: "hr_manager" });
+    setNewUser({ name: "", email: "", password: "" }); loadAll();
   }
   async function removeBranch(id: number) { await api.delete(`/org/branches/${id}`); loadAll(); }
   async function removeDept(id: number) { await api.delete(`/org/departments/${id}`); loadAll(); }
   async function removeUser(id: number) { await api.delete(`/users/${id}`); loadAll(); }
 
-  function downloadReport(path: string) {
-    const token = localStorage.getItem("nexahr_token");
-    fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.blob())
-      .then((blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = path.split("/").pop() || "report.csv";
-        a.click(); URL.revokeObjectURL(url);
-      });
+  async function downloadReport(path: string) {
+    const res = await api.get(path, { responseType: "blob" });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement("a");
+    const baseName = path.split("/").pop()?.split("?")[0] || "report";
+    a.href = url; a.download = `${baseName}.csv`;
+    a.click(); URL.revokeObjectURL(url);
   }
 
   async function downloadBackup() {
     setBackingUp(true);
     try {
-      const token = localStorage.getItem("nexahr_token");
-      const res = await fetch(`${API_BASE}/backup/export`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Backup failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const res = await api.get("/backup/export", { responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `nexahr-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `nexahr-backup-${(activeOrgName || "company").toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -78,7 +72,11 @@ export default function Settings() {
   return (
     <Layout>
       <h1 className="font-display text-2xl font-semibold text-ink-900">Settings</h1>
-      <p className="mt-1 text-sm text-ink-900/50">Configure branches, departments, HR accounts, and reports.</p>
+      <p className="mt-1 text-sm text-ink-900/50">
+        {isPlatformAdmin
+          ? <>Configuring <span className="font-medium text-ink-900">{activeOrgName}</span> — branches, departments, HR accounts, and reports for this company only.</>
+          : "Configure branches, departments, HR accounts, and reports."}
+      </p>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Branches */}
@@ -123,15 +121,14 @@ export default function Settings() {
         {/* HR Accounts */}
         <div className="rounded-2xl border border-ink-900/5 bg-white p-5 shadow-card lg:col-span-2">
           <p className="text-sm font-semibold text-ink-900">HR Accounts</p>
+          <p className="text-xs text-ink-900/45">
+            {isPlatformAdmin ? `Accounts that can log in and manage ${activeOrgName}'s data.` : "Accounts that can log in and manage your company's data."}
+          </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <input value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} placeholder="Full name" className="focus-ring w-40 rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
             <input value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="Email" className="focus-ring w-48 rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
             <input value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="Temp password" type="password" className="focus-ring w-36 rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
-            <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} className="focus-ring rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none">
-              <option value="hr_manager">HR Manager</option>
-              <option value="super_admin">Super Admin</option>
-            </select>
-            <button onClick={addUser} className="focus-ring rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-gold-400">Create account</button>
+            <button onClick={addUser} className="focus-ring rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-gold-400">Create HR account</button>
           </div>
           <ul className="mt-4 divide-y divide-ink-900/5">
             {users.map((u) => (
@@ -147,9 +144,9 @@ export default function Settings() {
         <div className="rounded-2xl border border-gold-500/30 bg-gold-500/5 p-5 shadow-card lg:col-span-2">
           <p className="text-sm font-semibold text-ink-900">Full Data Backup</p>
           <p className="mt-1 text-xs text-ink-900/50">
-            Download everything — every employee record, performance review, status change, and uploaded
-            document — as a single file you keep on your own computer. User passwords are never included.
-            Do this regularly, especially after HR makes significant updates.
+            Download everything for {isPlatformAdmin ? <span className="font-medium text-ink-900">{activeOrgName}</span> : "your company"} — every
+            employee record, performance review, status change, and uploaded document — as a single file
+            you keep on your own computer. User passwords are never included.
           </p>
           <button
             onClick={downloadBackup}

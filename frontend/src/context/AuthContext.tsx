@@ -1,12 +1,17 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import api from "../api/client";
+import { clearActiveOrg } from "../api/client";
 
 export interface AuthUser {
   id: number;
   name: string;
   email: string;
   role: "super_admin" | "hr_manager";
+  // null for the platform Super Admin (can operate across every client company).
+  // Always set for an HR Manager (locked to their one company).
+  organization_id: number | null;
+  organization_name: string | null;
 }
 
 interface AuthContextValue {
@@ -46,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem("nexahr_token");
     localStorage.removeItem("nexahr_user");
+    clearActiveOrg();
     setUser(null);
   }, []);
 
