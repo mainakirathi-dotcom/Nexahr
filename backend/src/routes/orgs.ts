@@ -2,28 +2,42 @@ import { Router } from "express";
 import { pool, many } from "../db";
 import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
 import { logAudit } from "../utils/audit";
+import { resolveOrgScope, requireOrgScope } from "../utils/orgScope";
 
 const router = Router();
 router.use(requireAuth);
 
 // Branches
-router.get("/branches", async (_req, res, next) => {
+router.get("/branches", async (req: AuthedRequest, res, next) => {
   try {
-    const branches = await many(`
+    const orgId = resolveOrgScope(req);
+    let sql = `
       SELECT b.*, (SELECT COUNT(*) FROM employees e WHERE e.branch_id = b.id) as employee_count
-      FROM branches b ORDER BY b.name`);
+      FROM branches b`;
+    const params: any[] = [];
+    if (orgId !== null) { sql += " WHERE b.organization_id = $1"; params.push(orgId); }
+    sql += " ORDER BY b.name";
+    const branches = await many(sql, params);
     res.json(branches);
   } catch (e) { next(e); }
 });
 
-router.post("/branches", requireRole("super_admin"), async (req: AuthedRequest, res, next) => {
+router.post("/branches", requireRole("super_admin", "hr_manager"), async (req: AuthedRequest, res, next) => {
   try {
+    const orgId = requireOrgScope(req, res);
+    if (orgId === null) return;
     const { name, location } = req.body;
     if (!name) return res.status(400).json({ error: "Branch name is required" });
-    const result = await pool.query("INSERT INTO branches (name, location) VALUES ($1,$2) RETURNING id", [name, location || null]);
-    await logAudit(req, req.user!.name, "Branch Created", name);
+    const result = await pool.query(
+      "INSERT INTO branches (name, location, organization_id) VALUES ($1,$2,$3) RETURNING id",
+      [name, location || null, orgId]
+    );
+    await logAudit(req, req.user!.name, "Branch Created", name, orgId);
     res.status(201).json({ id: result.rows[0].id });
-  } catch (e) { next(e); }
+  } catch (e: any) {
+    if (e.code === "23505") return res.status(400).json({ error: "A branch with that name already exists for this company" });
+    next(e);
+  }
 });
 
 router.delete("/branches/:id", requireRole("super_admin"), async (req: AuthedRequest, res, next) => {
@@ -35,21 +49,31 @@ router.delete("/branches/:id", requireRole("super_admin"), async (req: AuthedReq
 });
 
 // Departments
-router.get("/departments", async (_req, res, next) => {
+router.get("/departments", async (req: AuthedRequest, res, next) => {
   try {
-    const departments = await many(`
+    const orgId = resolveOrgScope(req);
+    let sql = `
       SELECT d.*, b.name as branch_name, (SELECT COUNT(*) FROM employees e WHERE e.department_id = d.id) as employee_count
-      FROM departments d LEFT JOIN branches b ON b.id = d.branch_id ORDER BY d.name`);
+      FROM departments d LEFT JOIN branches b ON b.id = d.branch_id`;
+    const params: any[] = [];
+    if (orgId !== null) { sql += " WHERE d.organization_id = $1"; params.push(orgId); }
+    sql += " ORDER BY d.name";
+    const departments = await many(sql, params);
     res.json(departments);
   } catch (e) { next(e); }
 });
 
 router.post("/departments", requireRole("super_admin", "hr_manager"), async (req: AuthedRequest, res, next) => {
   try {
+    const orgId = requireOrgScope(req, res);
+    if (orgId === null) return;
     const { name, branch_id } = req.body;
     if (!name) return res.status(400).json({ error: "Department name is required" });
-    const result = await pool.query("INSERT INTO departments (name, branch_id) VALUES ($1,$2) RETURNING id", [name, branch_id || null]);
-    await logAudit(req, req.user!.name, "Department Created", name);
+    const result = await pool.query(
+      "INSERT INTO departments (name, branch_id, organization_id) VALUES ($1,$2,$3) RETURNING id",
+      [name, branch_id || null, orgId]
+    );
+    await logAudit(req, req.user!.name, "Department Created", name, orgId);
     res.status(201).json({ id: result.rows[0].id });
   } catch (e) { next(e); }
 });

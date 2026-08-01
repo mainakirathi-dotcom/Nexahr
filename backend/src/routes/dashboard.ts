@@ -1,40 +1,47 @@
 import { Router } from "express";
 import { one, many } from "../db";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireOrgScope } from "../utils/orgScope";
 
 const router = Router();
 router.use(requireAuth);
 
-router.get("/stats", async (_req, res, next) => {
+router.get("/stats", async (req: AuthedRequest, res, next) => {
   try {
+    const orgId = requireOrgScope(req, res);
+    if (orgId === null) return;
+
     const count = async (sql: string, params: any[] = []) => Number((await one<{ c: string }>(sql, params))!.c);
 
-    const total = await count("SELECT COUNT(*) c FROM employees");
-    const active = await count("SELECT COUNT(*) c FROM employees WHERE status='Active'");
-    const onLeave = await count("SELECT COUNT(*) c FROM employees WHERE status='On Leave'");
-    const suspended = await count("SELECT COUNT(*) c FROM employees WHERE status='Suspended'");
-    const resigned = await count("SELECT COUNT(*) c FROM employees WHERE status='Resigned'");
-    const dismissed = await count("SELECT COUNT(*) c FROM employees WHERE status='Dismissed'");
-    const retired = await count("SELECT COUNT(*) c FROM employees WHERE status='Retired'");
-    const branches = await count("SELECT COUNT(*) c FROM branches");
-    const departments = await count("SELECT COUNT(*) c FROM departments");
+    const total = await count("SELECT COUNT(*) c FROM employees WHERE organization_id = $1", [orgId]);
+    const active = await count("SELECT COUNT(*) c FROM employees WHERE organization_id = $1 AND status='Active'", [orgId]);
+    const onLeave = await count("SELECT COUNT(*) c FROM employees WHERE organization_id = $1 AND status='On Leave'", [orgId]);
+    const suspended = await count("SELECT COUNT(*) c FROM employees WHERE organization_id = $1 AND status='Suspended'", [orgId]);
+    const resigned = await count("SELECT COUNT(*) c FROM employees WHERE organization_id = $1 AND status='Resigned'", [orgId]);
+    const dismissed = await count("SELECT COUNT(*) c FROM employees WHERE organization_id = $1 AND status='Dismissed'", [orgId]);
+    const retired = await count("SELECT COUNT(*) c FROM employees WHERE organization_id = $1 AND status='Retired'", [orgId]);
+    const branches = await count("SELECT COUNT(*) c FROM branches WHERE organization_id = $1", [orgId]);
+    const departments = await count("SELECT COUNT(*) c FROM departments WHERE organization_id = $1", [orgId]);
     const addedThisMonth = await count(
-      "SELECT COUNT(*) c FROM employees WHERE TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')"
+      "SELECT COUNT(*) c FROM employees WHERE organization_id = $1 AND TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')",
+      [orgId]
     );
 
     const today = new Date();
     const mmdd = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     const birthdaysToday = await many(
-      "SELECT id, full_name, dob, photo_url FROM employees WHERE TO_CHAR(dob, 'MM-DD') = $1",
-      [mmdd]
+      "SELECT id, full_name, dob, photo_url FROM employees WHERE organization_id = $1 AND TO_CHAR(dob, 'MM-DD') = $2",
+      [orgId, mmdd]
     );
 
-    const genderDist = await many("SELECT gender, COUNT(*) c FROM employees GROUP BY gender");
+    const genderDist = await many("SELECT gender, COUNT(*) c FROM employees WHERE organization_id = $1 GROUP BY gender", [orgId]);
     const branchDist = await many(`
-      SELECT b.name, COUNT(e.id) c FROM branches b LEFT JOIN employees e ON e.branch_id = b.id GROUP BY b.id, b.name`);
+      SELECT b.name, COUNT(e.id) c FROM branches b LEFT JOIN employees e ON e.branch_id = b.id
+      WHERE b.organization_id = $1 GROUP BY b.id, b.name`, [orgId]);
     const deptDist = await many(`
-      SELECT d.name, COUNT(e.id) c FROM departments d LEFT JOIN employees e ON e.department_id = d.id GROUP BY d.id, d.name`);
-    const statusDist = await many("SELECT status, COUNT(*) c FROM employees GROUP BY status");
+      SELECT d.name, COUNT(e.id) c FROM departments d LEFT JOIN employees e ON e.department_id = d.id
+      WHERE d.organization_id = $1 GROUP BY d.id, d.name`, [orgId]);
+    const statusDist = await many("SELECT status, COUNT(*) c FROM employees WHERE organization_id = $1 GROUP BY status", [orgId]);
 
     const salaryBuckets = await many(`
       SELECT
@@ -46,26 +53,29 @@ router.get("/stats", async (_req, res, next) => {
           ELSE '100K+'
         END as bucket,
         COUNT(*) as c
-      FROM employees GROUP BY bucket`);
+      FROM employees WHERE organization_id = $1 GROUP BY bucket`, [orgId]);
 
     const hiringTrend = await many(`
       SELECT TO_CHAR(date_hired, 'YYYY-MM') as ym, COUNT(*) c
-      FROM employees WHERE date_hired IS NOT NULL
-      GROUP BY ym ORDER BY ym`);
+      FROM employees WHERE organization_id = $1 AND date_hired IS NOT NULL
+      GROUP BY ym ORDER BY ym`, [orgId]);
 
     const growthTrend = await many<any>(`
       SELECT TO_CHAR(date_hired, 'YYYY-MM') as ym, COUNT(*) c
-      FROM employees WHERE date_hired IS NOT NULL
-      GROUP BY ym ORDER BY ym`);
+      FROM employees WHERE organization_id = $1 AND date_hired IS NOT NULL
+      GROUP BY ym ORDER BY ym`, [orgId]);
     let running = 0;
     const employeeGrowth = growthTrend.map((r) => { running += Number(r.c); return { ym: r.ym, total: running }; });
 
     const perfTrend = await many(`
-      SELECT year, month, AVG(score) as avg_score
-      FROM performance_evals GROUP BY year, month ORDER BY year, month`);
+      SELECT p.year, p.month, AVG(p.score) as avg_score
+      FROM performance_evals p JOIN employees e ON e.id = p.employee_id
+      WHERE e.organization_id = $1
+      GROUP BY p.year, p.month ORDER BY p.year, p.month`, [orgId]);
 
     const recentActivity = await many(
-      "SELECT user_name, action, details, created_at FROM audit_log ORDER BY created_at DESC LIMIT 10"
+      "SELECT user_name, action, details, created_at FROM audit_log WHERE organization_id = $1 ORDER BY created_at DESC LIMIT 10",
+      [orgId]
     );
 
     res.json({

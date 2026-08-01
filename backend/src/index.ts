@@ -8,6 +8,7 @@ import { runSeed } from "./db/seed";
 
 import authRoutes from "./routes/auth";
 import orgRoutes from "./routes/orgs";
+import organizationsRoutes from "./routes/organizations";
 import employeeRoutes from "./routes/employees";
 import performanceRoutes from "./routes/performance";
 import dashboardRoutes from "./routes/dashboard";
@@ -25,6 +26,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/org", orgRoutes);
+app.use("/api/organizations", organizationsRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/performance", performanceRoutes);
 app.use("/api/dashboard", dashboardRoutes);

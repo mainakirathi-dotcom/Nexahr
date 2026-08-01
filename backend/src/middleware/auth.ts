@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "nexahr-dev-secret-change-me";
 
 export interface AuthedRequest extends Request {
-  user?: { id: number; name: string; email: string; role: string };
+  user?: { id: number; name: string; email: string; role: string; organization_id: number | null };
 }
 
 export function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {

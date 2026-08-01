@@ -1,14 +1,31 @@
 import { Router } from "express";
-import { pool, many } from "../db";
+import { pool, one, many } from "../db";
 import { requireAuth, requireRole, AuthedRequest } from "../middleware/auth";
 import { logAudit } from "../utils/audit";
+import { requireOrgScope } from "../utils/orgScope";
 
 const router = Router();
 router.use(requireAuth);
 
+// Confirms the employee actually belongs to the company being viewed, before showing
+// or writing anything about them — prevents one company's HR from probing another
+// company's employee IDs.
+async function assertEmployeeInScope(employeeId: string, orgId: number): Promise<string | null> {
+  const row = await one<{ full_name: string }>(
+    "SELECT full_name FROM employees WHERE id = $1 AND organization_id = $2",
+    [employeeId, orgId]
+  );
+  return row?.full_name ?? null;
+}
+
 // Get all evaluations for an employee, plus computed stats
-router.get("/employee/:id", async (req, res, next) => {
+router.get("/employee/:id", async (req: AuthedRequest, res, next) => {
   try {
+    const orgId = requireOrgScope(req, res);
+    if (orgId === null) return;
+    const empName = await assertEmployeeInScope(req.params.id, orgId);
+    if (!empName) return res.status(404).json({ error: "Employee not found" });
+
     const rows = await many<any>(
       "SELECT * FROM performance_evals WHERE employee_id = $1 ORDER BY year, month",
       [req.params.id]
@@ -49,13 +66,14 @@ router.get("/employee/:id", async (req, res, next) => {
 // Add or upsert a monthly evaluation
 router.post("/employee/:id", requireRole("super_admin", "hr_manager"), async (req: AuthedRequest, res, next) => {
   try {
+    const orgId = requireOrgScope(req, res);
+    if (orgId === null) return;
+    const empName = await assertEmployeeInScope(req.params.id, orgId);
+    if (!empName) return res.status(404).json({ error: "Employee not found" });
+
     const { year, month, score, notes } = req.body;
     if (!year || !month || score === undefined) return res.status(400).json({ error: "year, month and score are required" });
     if (score < 1 || score > 10) return res.status(400).json({ error: "Score must be between 1 and 10" });
-
-    const empResult = await pool.query("SELECT full_name FROM employees WHERE id = $1", [req.params.id]);
-    const emp = empResult.rows[0];
-    if (!emp) return res.status(404).json({ error: "Employee not found" });
 
     await pool.query(
       `INSERT INTO performance_evals (employee_id, year, month, score, notes, evaluated_by)
@@ -64,14 +82,17 @@ router.post("/employee/:id", requireRole("super_admin", "hr_manager"), async (re
       [req.params.id, year, month, score, notes || null, req.user!.name]
     );
 
-    await logAudit(req, req.user!.name, "Performance Review Recorded", `${emp.full_name} - ${year}-${month}: ${score}`);
+    await logAudit(req, req.user!.name, "Performance Review Recorded", `${empName} - ${year}-${month}: ${score}`, orgId);
     res.status(201).json({ ok: true });
   } catch (e) { next(e); }
 });
 
-// Rankings & leaderboards across the company
-router.get("/rankings", async (_req, res, next) => {
+// Rankings & leaderboards — scoped to one company at a time.
+router.get("/rankings", async (req: AuthedRequest, res, next) => {
   try {
+    const orgId = requireOrgScope(req, res);
+    if (orgId === null) return;
+
     const employeeAverages = await many<any>(`
       SELECT e.id, e.full_name, e.employee_code, e.department_id, e.branch_id,
              d.name as department_name, b.name as branch_name,
@@ -80,18 +101,21 @@ router.get("/rankings", async (_req, res, next) => {
       JOIN performance_evals p ON p.employee_id = e.id
       LEFT JOIN departments d ON d.id = e.department_id
       LEFT JOIN branches b ON b.id = e.branch_id
-      WHERE e.status = 'Active'
+      WHERE e.status = 'Active' AND e.organization_id = $1
       GROUP BY e.id, d.name, b.name
       HAVING COUNT(p.id) > 0
       ORDER BY avg_score DESC
-    `);
+    `, [orgId]);
 
     const best = employeeAverages.slice(0, 5);
     const lowest = [...employeeAverages].sort((a, b) => a.avg_score - b.avg_score).slice(0, 5);
 
-    // most improved = compare avg of last 3 months vs prior 3 months
     const improvement = await many<any>(
-      `SELECT employee_id, year, month, score FROM performance_evals ORDER BY employee_id, year, month`
+      `SELECT p.employee_id, p.year, p.month, p.score
+       FROM performance_evals p JOIN employees e ON e.id = p.employee_id
+       WHERE e.organization_id = $1
+       ORDER BY p.employee_id, p.year, p.month`,
+      [orgId]
     );
     const byEmp: Record<number, any[]> = {};
     improvement.forEach((r) => {
@@ -117,16 +141,18 @@ router.get("/rankings", async (_req, res, next) => {
       FROM departments d
       JOIN employees e ON e.department_id = d.id
       JOIN performance_evals p ON p.employee_id = e.id
+      WHERE d.organization_id = $1
       GROUP BY d.id ORDER BY avg_score DESC
-    `);
+    `, [orgId]);
 
     const branchRanking = await many(`
       SELECT b.id, b.name, AVG(p.score) as avg_score
       FROM branches b
       JOIN employees e ON e.branch_id = b.id
       JOIN performance_evals p ON p.employee_id = e.id
+      WHERE b.organization_id = $1
       GROUP BY b.id ORDER BY avg_score DESC
-    `);
+    `, [orgId]);
 
     res.json({ best, lowest, mostImproved, deptRanking, branchRanking });
   } catch (e) { next(e); }
