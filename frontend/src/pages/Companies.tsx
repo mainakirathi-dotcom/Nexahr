@@ -51,7 +51,7 @@ export default function Companies() {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="focus-ring rounded-xl bg-gold-500 px-4 py-2.5 text-sm font-semibold text-ink-950 hover:bg-gold-400"
+          className="focus-ring rounded-xl bg-midnight-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-midnight-400"
         >
           + Onboard new company
         </button>
@@ -187,7 +187,7 @@ function AddCompanyModal({ open, onClose, onCreated }: { open: boolean; onClose:
         </label>
 
         <div className="border-t border-ink-900/10 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">First HR account (optional — you can add this later)</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-midnight-600">First HR account (optional — you can add this later)</p>
           <div className="mt-2 space-y-3">
             <input value={hrName} onChange={(e) => setHrName(e.target.value)} placeholder="Contact's full name" className="focus-ring w-full rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
             <input value={hrEmail} onChange={(e) => setHrEmail(e.target.value)} placeholder="Their email address" className="focus-ring w-full rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />

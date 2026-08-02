@@ -79,7 +79,7 @@ export default function EmployeeForm({
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">Personal Information</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-midnight-600">Personal Information</p>
         <div className="mt-2 grid grid-cols-2 gap-3">
           <Field label="Full name *"><input className={inputCls} value={values.full_name} onChange={(e) => set("full_name", e.target.value)} required /></Field>
           <Field label="National ID"><input className={inputCls} value={values.national_id} onChange={(e) => set("national_id", e.target.value)} /></Field>
@@ -97,7 +97,7 @@ export default function EmployeeForm({
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">Employment Information</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-midnight-600">Employment Information</p>
         <div className="mt-2 grid grid-cols-2 gap-3">
           <Field label="Job title"><input className={inputCls} value={values.job_title} onChange={(e) => set("job_title", e.target.value)} /></Field>
           <Field label="Branch">
@@ -134,7 +134,7 @@ export default function EmployeeForm({
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">Additional Information</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-midnight-600">Additional Information</p>
         <div className="mt-2 grid grid-cols-2 gap-3">
           <Field label="Bank details"><input className={inputCls} value={values.bank_details} onChange={(e) => set("bank_details", e.target.value)} /></Field>
           <Field label="KRA PIN"><input className={inputCls} value={values.kra_pin} onChange={(e) => set("kra_pin", e.target.value)} /></Field>

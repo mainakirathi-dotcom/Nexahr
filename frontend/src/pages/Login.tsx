@@ -2,17 +2,21 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { flagLoginToast } from "../components/LoginToast";
 
 export default function Login() {
   const { login, loading, error } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@nexahr.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
+  const [view, setView] = useState<"login" | "signup">("login");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     try {
-      await login(email, password);
+      await login(email, password, remember);
+      flagLoginToast();
       navigate("/");
     } catch {
       // error is surfaced via context
@@ -20,67 +24,99 @@ export default function Login() {
   }
 
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between bg-ink-950 p-12 text-sand-50 lg:flex">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-500 font-display text-sm font-bold text-ink-950">NX</div>
-          <span className="font-display text-lg font-semibold">NexaHR</span>
-        </div>
-        <div>
-          <p className="font-display text-4xl font-semibold leading-tight">
-            Every employee record,<br /> one workforce cloud.
-          </p>
-          <p className="mt-4 max-w-md text-sand-50/50">
-            Profiles, performance history, documents and audit trails for every branch — kept in one
-            secure, always-current system of record.
-          </p>
-        </div>
-        <p className="text-xs text-sand-50/30">© {new Date().getFullYear()} NexaHR. Internal HR platform.</p>
-      </div>
-
-      <div className="flex items-center justify-center bg-sand-50 p-8">
-        <form onSubmit={handleSubmit} className="w-full max-w-sm">
-          <h1 className="font-display text-2xl font-semibold text-ink-900">Sign in</h1>
-          <p className="mt-1 text-sm text-ink-900/50">Use your HR account to access NexaHR.</p>
-
-          {error && (
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <label className="mt-6 block text-sm font-medium text-ink-900/70">Email address</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="focus-ring mt-1.5 w-full rounded-xl border border-ink-900/10 bg-white px-3.5 py-2.5 text-sm outline-none"
-          />
-
-          <label className="mt-4 block text-sm font-medium text-ink-900/70">Password</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="focus-ring mt-1.5 w-full rounded-xl border border-ink-900/10 bg-white px-3.5 py-2.5 text-sm outline-none"
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="focus-ring mt-6 w-full rounded-xl bg-ink-950 py-2.5 text-sm font-semibold text-sand-50 transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-
-          <div className="mt-6 rounded-xl border border-ink-900/10 bg-white p-3 text-xs text-ink-900/50">
-            <p className="font-semibold text-ink-900/70">Demo accounts</p>
-            <p className="mt-1">Super Admin — admin@nexahr.com / admin123</p>
-            <p>HR Manager — hr@nexahr.com / hr12345</p>
+    <div className="flex min-h-screen items-center justify-center bg-sand-50 px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-midnight-500 font-display text-2xl font-bold text-white shadow-card">
+            hr
           </div>
-        </form>
+
+          {view === "login" ? (
+            <>
+              <h1 className="mt-5 font-display text-3xl font-bold text-midnight-500">Hi, welcome back</h1>
+              <p className="mt-1.5 text-sm text-ink-900/60">Please fill in your details to log in</p>
+            </>
+          ) : (
+            <>
+              <h1 className="mt-5 font-display text-3xl font-bold text-midnight-500">Thank you for contacting NexaHR</h1>
+              <p className="mt-1.5 text-sm text-ink-900/60">Please reach out to the administrator to request an account.</p>
+            </>
+          )}
+        </div>
+
+        {view === "login" ? (
+          <form onSubmit={handleSubmit} className="mt-8 rounded-2xl bg-white p-6 shadow-card sm:p-8">
+            {error && (
+              <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <label className="block text-sm font-medium text-ink-900/70">Email address</label>
+            <input
+              type="email"
+              required
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="focus-ring mt-1.5 w-full rounded-xl border border-ink-900/10 bg-white px-3.5 py-2.5 text-sm outline-none"
+            />
+
+            <label className="mt-4 block text-sm font-medium text-ink-900/70">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="focus-ring mt-1.5 w-full rounded-xl border border-ink-900/10 bg-white px-3.5 py-2.5 text-sm outline-none"
+            />
+
+            <label className="mt-4 flex items-center gap-2 text-sm text-ink-900/70">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="h-4 w-4 rounded border-ink-900/20 text-midnight-500 focus:ring-midnight-500"
+              />
+              Remember me
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="focus-ring mt-6 w-full rounded-xl bg-ink-950 py-2.5 text-sm font-semibold text-sand-50 transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+
+            <p className="mt-6 text-center text-sm text-ink-900/60">
+              Don't have an account?{" "}
+              <button type="button" onClick={() => setView("signup")} className="focus-ring font-semibold text-midnight-500 hover:underline">
+                Sign Up
+              </button>
+            </p>
+          </form>
+        ) : (
+          <div className="mt-8 rounded-2xl bg-white p-6 text-center shadow-card sm:p-8">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-midnight-50">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-midnight-500">
+                <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+                <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" />
+              </svg>
+            </div>
+            <p className="mt-4 text-sm text-ink-900/70">
+              Administrator Contact:{" "}
+              <a href="tel:0115961382" className="font-semibold text-midnight-500 hover:underline">0115961382</a>
+            </p>
+            <button
+              type="button"
+              onClick={() => setView("login")}
+              className="focus-ring mt-6 w-full rounded-xl border border-ink-900/10 py-2.5 text-sm font-semibold text-ink-900 hover:bg-ink-900/5"
+            >
+              Back to Login
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

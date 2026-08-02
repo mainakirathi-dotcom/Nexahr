@@ -128,7 +128,7 @@ export default function Settings() {
             <input value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} placeholder="Full name" className="focus-ring w-40 rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
             <input value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="Email" className="focus-ring w-48 rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
             <input value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="Temp password" type="password" className="focus-ring w-36 rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
-            <button onClick={addUser} className="focus-ring rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-gold-400">Create HR account</button>
+            <button onClick={addUser} className="focus-ring rounded-lg bg-midnight-500 px-4 py-2 text-sm font-semibold text-white hover:bg-midnight-400">Create HR account</button>
           </div>
           <ul className="mt-4 divide-y divide-ink-900/5">
             {users.map((u) => (
@@ -141,7 +141,7 @@ export default function Settings() {
         </div>
 
         {/* Full data backup */}
-        <div className="rounded-2xl border border-gold-500/30 bg-gold-500/5 p-5 shadow-card lg:col-span-2">
+        <div className="rounded-2xl border border-midnight-500/30 bg-midnight-500/5 p-5 shadow-card lg:col-span-2">
           <p className="text-sm font-semibold text-ink-900">Full Data Backup</p>
           <p className="mt-1 text-xs text-ink-900/50">
             Download everything for {isPlatformAdmin ? <span className="font-medium text-ink-900">{activeOrgName}</span> : "your company"} — every

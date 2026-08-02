@@ -8,18 +8,38 @@ export async function runSeed() {
   const existingOrgCount = Number((await one<{ c: string }>("SELECT COUNT(*) as c FROM organizations"))!.c);
   const isFreshInstall = existingOrgCount === 0;
 
-  // Platform Super Admin — organization_id is NULL, meaning platform-wide access
-  // across every client company. Safe to (re)check on every boot.
+  // Your own private Super Admin account — set BOOTSTRAP_ADMIN_EMAIL and
+  // BOOTSTRAP_ADMIN_PASSWORD as environment variables (in Render's Environment tab, or
+  // your local .env). Nothing here is hardcoded — your real email and password never
+  // touch this codebase or GitHub. Safe to leave these variables set permanently; this
+  // only ever creates the account once and does nothing on later boots.
+  const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
+  const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  if (bootstrapEmail && bootstrapPassword) {
+    const exists = await one("SELECT id FROM users WHERE email = $1", [bootstrapEmail]);
+    if (!exists) {
+      await pool.query(
+        "INSERT INTO users (name, email, password_hash, role, organization_id) VALUES ($1,$2,$3,$4,$5)",
+        [process.env.BOOTSTRAP_ADMIN_NAME || "Super Admin", bootstrapEmail, bcrypt.hashSync(bootstrapPassword, 10), "super_admin", null]
+      );
+      console.log(`Created your personal Super Admin account: ${bootstrapEmail}`);
+    }
+  }
+
+  if (!isFreshInstall) return;
+
+  // Demo Super Admin — only created on a brand-new install (local dev / first-time
+  // setup), so there's something to log in with immediately. Once you have your own
+  // account via BOOTSTRAP_ADMIN_EMAIL above, feel free to delete this one from Settings
+  // — or just never share these credentials with anyone.
   const adminExists = await one("SELECT id FROM users WHERE email = $1", ["admin@nexahr.com"]);
   if (!adminExists) {
     await pool.query(
       "INSERT INTO users (name, email, password_hash, role, organization_id) VALUES ($1,$2,$3,$4,$5)",
       ["System Admin", "admin@nexahr.com", bcrypt.hashSync("admin123", 10), "super_admin", null]
     );
-    console.log("Seeded platform Super Admin: admin@nexahr.com / admin123");
+    console.log("Seeded demo Super Admin: admin@nexahr.com / admin123");
   }
-
-  if (!isFreshInstall) return;
 
   // A demo client company so a brand-new install has something to look at out of the box.
   let demoOrgId: number;

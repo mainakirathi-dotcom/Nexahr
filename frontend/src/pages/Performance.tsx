@@ -39,12 +39,12 @@ function RankList({ title, people, navigate, showDelta }: { title: string; peopl
       ) : (
         <ul className="mt-3 space-y-2.5">
           {people.map((p) => (
-            <li key={p.id} onClick={() => navigate(`/employees/${p.id}`)} className="flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-gold-500/5">
+            <li key={p.id} onClick={() => navigate(`/employees/${p.id}`)} className="flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-midnight-500/5">
               <div>
                 <p className="font-medium text-ink-900">{p.full_name}</p>
                 <p className="text-xs text-ink-900/40">{p.department_name || "—"} · {p.branch_name || "—"}</p>
               </div>
-              <span className="font-display font-semibold text-gold-600">
+              <span className="font-display font-semibold text-midnight-600">
                 {showDelta ? `${p.delta > 0 ? "+" : ""}${p.delta}` : `${Math.round(p.avg_score * 10) / 10}`}
               </span>
             </li>

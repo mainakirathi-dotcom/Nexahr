@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getToken, clearSession } from "../utils/authStorage";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
@@ -24,7 +25,7 @@ export function clearActiveOrg() {
 }
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("nexahr_token");
+  const token = getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
 
   const activeOrgId = getActiveOrgId();
@@ -38,8 +39,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem("nexahr_token");
-      localStorage.removeItem("nexahr_user");
+      clearSession();
       clearActiveOrg();
       if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";

@@ -6,7 +6,7 @@ interface StatCardProps {
 }
 
 const ACCENTS = {
-  gold: "text-gold-600 bg-gold-500/10",
+  gold: "text-midnight-600 bg-midnight-500/10",
   teal: "text-teal-600 bg-teal-500/10",
   ink: "text-ink-700 bg-ink-700/10",
 };

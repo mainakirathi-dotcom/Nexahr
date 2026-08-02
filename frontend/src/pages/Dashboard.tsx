@@ -6,8 +6,9 @@ import {
 import api from "../api/client";
 import Layout from "../components/Layout";
 import StatCard from "../components/StatCard";
+import { useAuth } from "../context/AuthContext";
 
-const PIE_COLORS = ["#D9A441", "#279E88", "#2C4270", "#B9862C", "#3FBFA6", "#203150"];
+const PIE_COLORS = ["#4C1D95", "#279E88", "#2C4270", "#7C3AED", "#3FBFA6", "#203150"];
 
 interface DashboardData {
   totals: Record<string, number>;
@@ -24,6 +25,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [insight, setInsight] = useState<string[]>([]);
 
@@ -36,19 +38,20 @@ export default function Dashboard() {
 
   const t = data.totals;
   const perfTrendData = data.perfTrend.map((p) => ({ label: `${p.year}-${String(p.month).padStart(2, "0")}`, score: Math.round(p.avg_score * 10) / 10 }));
+  const firstName = user?.name?.split(" ")[0] || "";
 
   return (
     <Layout>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink-900">Dashboard</h1>
+          <h1 className="font-display text-2xl font-semibold text-ink-900">Welcome back, {firstName}</h1>
           <p className="mt-1 text-sm text-ink-900/50">Workforce overview across all branches.</p>
         </div>
       </div>
 
       {insight.length > 0 && (
-        <div className="mt-5 rounded-2xl border border-gold-500/30 bg-gold-500/5 px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">AI insight</p>
+        <div className="mt-5 rounded-2xl border border-midnight-500/30 bg-midnight-500/5 px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-midnight-600">AI insight</p>
           <p className="mt-1 text-sm text-ink-900/80">{insight.join(" ")}</p>
         </div>
       )}
@@ -74,7 +77,7 @@ export default function Dashboard() {
               <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={2} />
               <YAxis domain={[0, 10]} tick={{ fontSize: 10 }} />
               <Tooltip />
-              <Line type="monotone" dataKey="score" stroke="#D9A441" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="score" stroke="#4C1D95" strokeWidth={2.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -114,7 +117,7 @@ export default function Dashboard() {
               <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={110} />
               <Tooltip />
-              <Bar dataKey="c" fill="#D9A441" radius={[0, 6, 6, 0]} />
+              <Bar dataKey="c" fill="#4C1D95" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -155,7 +158,7 @@ export default function Dashboard() {
             <ul className="mt-3 space-y-2">
               {data.birthdaysToday.map((b: any) => (
                 <li key={b.id} className="flex items-center gap-3 text-sm">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-500/15 font-display text-xs font-semibold text-gold-600">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-midnight-500/15 font-display text-xs font-semibold text-midnight-600">
                     {b.full_name[0]}
                   </span>
                   {b.full_name}

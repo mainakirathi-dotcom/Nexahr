@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import type { ReactNode } from "react";
-import api from "../api/client";
-import { clearActiveOrg } from "../api/client";
+import api, { clearActiveOrg } from "../api/client";
+import { getStoredUser, setSession, clearSession } from "../utils/authStorage";
 
 export interface AuthUser {
   id: number;
@@ -16,7 +16,7 @@ export interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, remember: boolean) => Promise<void>;
   logout: () => void;
   loading: boolean;
   error: string | null;
@@ -25,20 +25,16 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const raw = localStorage.getItem("nexahr_user");
-    return raw ? JSON.parse(raw) : null;
-  });
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser<AuthUser>());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, remember: boolean) => {
     setLoading(true);
     setError(null);
     try {
       const res = await api.post("/auth/login", { email, password });
-      localStorage.setItem("nexahr_token", res.data.token);
-      localStorage.setItem("nexahr_user", JSON.stringify(res.data.user));
+      setSession(res.data.token, res.data.user, remember);
       setUser(res.data.user);
     } catch (e: any) {
       setError(e.response?.data?.error || "Unable to sign in. Check your credentials.");
@@ -49,8 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("nexahr_token");
-    localStorage.removeItem("nexahr_user");
+    clearSession();
     clearActiveOrg();
     setUser(null);
   }, []);

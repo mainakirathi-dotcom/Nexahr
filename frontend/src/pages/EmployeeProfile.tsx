@@ -95,7 +95,7 @@ export default function EmployeeProfile() {
                 <StatusBadge status={employee.status} />
               </div>
               <div className="mt-5 flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gold-500 font-display text-xl font-bold text-ink-950">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-midnight-500 font-display text-xl font-bold text-white">
                   {employee.full_name.split(" ").map((p: string) => p[0]).slice(0, 2).join("")}
                 </div>
                 <div>
@@ -126,7 +126,7 @@ export default function EmployeeProfile() {
               <button onClick={() => setShowEdit(true)} className="focus-ring w-full rounded-xl border border-ink-900/10 bg-white px-4 py-2.5 text-sm font-medium text-ink-900 hover:bg-ink-900/5">
                 Edit profile
               </button>
-              <button onClick={() => setShowEval(true)} className="focus-ring w-full rounded-xl bg-gold-500 px-4 py-2.5 text-sm font-semibold text-ink-950 hover:bg-gold-400">
+              <button onClick={() => setShowEval(true)} className="focus-ring w-full rounded-xl bg-midnight-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-midnight-400">
                 Record monthly evaluation
               </button>
               <button onClick={() => setShowStatus(true)} className="focus-ring w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-100">
@@ -143,7 +143,7 @@ export default function EmployeeProfile() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`focus-ring -mb-px border-b-2 px-3 py-2.5 text-sm font-medium ${tab === t ? "border-gold-500 text-ink-900" : "border-transparent text-ink-900/45 hover:text-ink-900"}`}
+                className={`focus-ring -mb-px border-b-2 px-3 py-2.5 text-sm font-medium ${tab === t ? "border-midnight-500 text-ink-900" : "border-transparent text-ink-900/45 hover:text-ink-900"}`}
               >
                 {t}
               </button>
@@ -193,7 +193,7 @@ export default function EmployeeProfile() {
                     <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                     <YAxis domain={[0, 10]} tick={{ fontSize: 10 }} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="score" stroke="#D9A441" strokeWidth={2.5} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="score" stroke="#4C1D95" strokeWidth={2.5} dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -345,7 +345,7 @@ function EvaluationModal({ open, onClose, onSubmit }: { open: boolean; onClose: 
         </div>
         <label className="block">
           <span className="text-xs font-medium text-ink-900/60">Score (1–10): {score}</span>
-          <input type="range" min={1} max={10} step={0.5} value={score} onChange={(e) => setScore(Number(e.target.value))} className="mt-2 w-full accent-gold-500" />
+          <input type="range" min={1} max={10} step={0.5} value={score} onChange={(e) => setScore(Number(e.target.value))} className="mt-2 w-full accent-midnight-500" />
         </label>
         <label className="block">
           <span className="text-xs font-medium text-ink-900/60">Notes (optional)</span>
@@ -356,7 +356,7 @@ function EvaluationModal({ open, onClose, onSubmit }: { open: boolean; onClose: 
           <button
             disabled={saving}
             onClick={async () => { setSaving(true); await onSubmit(year, month, score, notes); setSaving(false); }}
-            className="focus-ring rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-gold-400 disabled:opacity-50"
+            className="focus-ring rounded-lg bg-midnight-500 px-4 py-2 text-sm font-semibold text-white hover:bg-midnight-400 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save evaluation"}
           </button>

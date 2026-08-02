@@ -58,7 +58,7 @@ export default function Employees() {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="focus-ring rounded-xl bg-gold-500 px-4 py-2.5 text-sm font-semibold text-ink-950 hover:bg-gold-400"
+          className="focus-ring rounded-xl bg-midnight-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-midnight-400"
         >
           + Add employee
         </button>
@@ -106,7 +106,7 @@ export default function Employees() {
               <tr
                 key={e.id}
                 onClick={() => navigate(`/employees/${e.id}`)}
-                className="cursor-pointer border-b border-ink-900/5 last:border-0 hover:bg-gold-500/5"
+                className="cursor-pointer border-b border-ink-900/5 last:border-0 hover:bg-midnight-500/5"
               >
                 <td className="flex items-center gap-3 px-5 py-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 font-display text-xs font-semibold text-sand-50">
@@ -122,7 +122,7 @@ export default function Employees() {
                 <td className="px-5 py-3"><StatusBadge status={e.status} /></td>
                 <td className="px-5 py-3">
                   {e.performance_index !== null ? (
-                    <span className={`font-semibold ${e.performance_index >= 7 ? "text-teal-600" : e.performance_index >= 5 ? "text-gold-600" : "text-red-500"}`}>
+                    <span className={`font-semibold ${e.performance_index >= 7 ? "text-teal-600" : e.performance_index >= 5 ? "text-midnight-600" : "text-red-500"}`}>
                       {e.performance_index}/10
                     </span>
                   ) : <span className="text-ink-900/30">No reviews</span>}
