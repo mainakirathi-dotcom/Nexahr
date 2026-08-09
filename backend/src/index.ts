@@ -17,6 +17,7 @@ import miscRoutes from "./routes/misc";
 import aiRoutes from "./routes/ai";
 import userRoutes from "./routes/users";
 import backupRoutes from "./routes/backup";
+import adminsRoutes from "./routes/admins";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/org", orgRoutes);
 app.use("/api/organizations", organizationsRoutes);
+app.use("/api/admins", adminsRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/performance", performanceRoutes);
 app.use("/api/dashboard", dashboardRoutes);

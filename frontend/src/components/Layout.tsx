@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useOrg } from "../context/OrgContext";
 import LoginToast from "./LoginToast";
+import Logo from "./Logo";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: "grid" },
@@ -20,6 +21,7 @@ const ICONS: Record<string, ReactNode> = {
   settings: <path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.3.9a7 7 0 00-2-1.2L14 3h-4l-.6 2.5a7 7 0 00-2 1.2l-2.3-.9-2 3.4 2 1.6a7 7 0 000 2.4l-2 1.6 2 3.4 2.3-.9a7 7 0 002 1.2L10 21h4l.6-2.5a7 7 0 002-1.2l2.3.9 2-3.4-2-1.6c.07-.4.1-.8.1-1.2z" />,
   log: <path d="M4 6h16M4 12h16M4 18h10" />,
   building: <path d="M3 21h18M6 21V5a1 1 0 011-1h6a1 1 0 011 1v16M18 21V9a1 1 0 00-1-1h-3M9 7h.01M9 11h.01M9 15h.01" />,
+  shield: <path d="M12 2l8 3.5v6c0 5-3.5 8.5-8 10.5-4.5-2-8-5.5-8-10.5v-6L12 2z" />,
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   close: <path d="M18 6L6 18M6 6l12 12" />,
 };
@@ -43,7 +45,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Mobile top bar — hidden on desktop */}
       <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-ink-900/5 bg-ink-950 px-4 py-3 text-sand-50 lg:hidden">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-midnight-500 font-display text-xs font-bold text-white">hr</div>
+          <div className="flex h-8 w-8 items-center justify-center">
+            <Logo size={28} />
+          </div>
           <span className="font-display text-base font-semibold">NexaHR</span>
         </div>
         <button onClick={() => setMobileNavOpen(true)} className="focus-ring rounded-lg p-1.5 text-sand-50/70 hover:bg-white/5" aria-label="Open menu">
@@ -63,8 +67,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       >
         <div className="flex items-center justify-between gap-2 px-6 py-6">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-midnight-500 font-display text-sm font-bold text-white">
-              hr
+            <div className="flex h-9 w-9 items-center justify-center">
+              <Logo size={32} />
             </div>
             <div>
               <p className="font-display text-lg font-semibold leading-none">NexaHR</p>
@@ -146,6 +150,22 @@ export default function Layout({ children }: { children: ReactNode }) {
                 {ICONS.building}
               </svg>
               Companies
+            </NavLink>
+          )}
+          {isPlatformAdmin && (
+            <NavLink
+              to="/admins"
+              onClick={() => setMobileNavOpen(false)}
+              className={({ isActive }) =>
+                `focus-ring flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  isActive ? "bg-midnight-500 text-white" : "text-sand-50/60 hover:bg-white/5 hover:text-sand-50"
+                }`
+              }
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                {ICONS.shield}
+              </svg>
+              Administrators
             </NavLink>
           )}
         </nav>

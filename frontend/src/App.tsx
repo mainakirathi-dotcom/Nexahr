@@ -9,6 +9,7 @@ import Performance from "./pages/Performance";
 import Settings from "./pages/Settings";
 import AuditLog from "./pages/AuditLog";
 import Companies from "./pages/Companies";
+import Admins from "./pages/Admins";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/settings" element={<AdminRoute><RequireOrgSelected><Settings /></RequireOrgSelected></AdminRoute>} />
             <Route path="/audit-log" element={<AdminRoute><RequireOrgSelected><AuditLog /></RequireOrgSelected></AdminRoute>} />
             <Route path="/companies" element={<AdminRoute><Companies /></AdminRoute>} />
+            <Route path="/admins" element={<AdminRoute><Admins /></AdminRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

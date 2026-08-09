@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { flagLoginToast } from "../components/LoginToast";
+import Logo from "../components/Logo";
 
 export default function Login() {
   const { login, loading, error } = useAuth();
@@ -27,8 +28,8 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-sand-50 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-midnight-500 font-display text-2xl font-bold text-white shadow-card">
-            hr
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-ink-950 shadow-card">
+            <Logo size={56} />
           </div>
 
           {view === "login" ? (
