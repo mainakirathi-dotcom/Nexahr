@@ -11,7 +11,7 @@ export interface EmployeeFormValues {
   address: string;
   emergency_contact: string;
   job_title: string;
-  department_id: string;
+  department: string;
   branch: string;
   employment_type: string;
   employment_category: string;
@@ -26,7 +26,7 @@ export interface EmployeeFormValues {
 
 const EMPTY: EmployeeFormValues = {
   full_name: "", national_id: "", gender: "", dob: "", phone: "", email: "", address: "",
-  emergency_contact: "", job_title: "", department_id: "", branch: "", employment_type: "Full-Time",
+  emergency_contact: "", job_title: "", department: "", branch: "", employment_type: "Full-Time",
   employment_category: "Permanent", date_hired: "", salary: "", bank_details: "", kra_pin: "",
   nssf_number: "", sha_number: "", next_of_kin: "",
 };
@@ -113,10 +113,16 @@ export default function EmployeeForm({
             </datalist>
           </Field>
           <Field label="Department">
-            <select className={inputCls} value={values.department_id} onChange={(e) => set("department_id", e.target.value)}>
-              <option value="">Select department</option>
-              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+            <input
+              className={inputCls}
+              list="department-options"
+              value={values.department}
+              onChange={(e) => set("department", e.target.value)}
+              placeholder="Pick an existing department or type a new one"
+            />
+            <datalist id="department-options">
+              {departments.map((d) => <option key={d.id} value={d.name} />)}
+            </datalist>
           </Field>
           <Field label="Employment type">
             <select className={inputCls} value={values.employment_type} onChange={(e) => set("employment_type", e.target.value)}>

@@ -251,7 +251,7 @@ export default function EmployeeProfile() {
             full_name: employee.full_name, national_id: employee.national_id || "", gender: employee.gender || "",
             dob: employee.dob || "", phone: employee.phone || "", email: employee.email || "", address: employee.address || "",
             emergency_contact: employee.emergency_contact || "", job_title: employee.job_title || "",
-            department_id: employee.department_id || "", branch: employee.branch_name || "",
+            department: employee.department_name || "", branch: employee.branch_name || "",
             employment_type: employee.employment_type || "Full-Time", employment_category: employee.employment_category || "Permanent",
             date_hired: employee.date_hired || "", salary: String(employee.salary || ""), bank_details: employee.bank_details || "",
             kra_pin: employee.kra_pin || "", nssf_number: employee.nssf_number || "", sha_number: employee.sha_number || "",

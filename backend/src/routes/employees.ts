@@ -32,6 +32,24 @@ async function resolveBranchId(branchName: unknown, orgId: number): Promise<numb
   return created!.id;
 }
 
+// Same idea for department — type a new one freely, matched case-insensitively within
+// the company, created on the fly if it doesn't exist yet. If a branch was already
+// resolved in the same request, a newly-created department is linked to it.
+async function resolveDepartmentId(deptName: unknown, orgId: number, branchId: number | null): Promise<number | null> {
+  if (typeof deptName !== "string" || !deptName.trim()) return null;
+  const name = deptName.trim();
+  const existing = await one<{ id: number }>(
+    "SELECT id FROM departments WHERE LOWER(name) = LOWER($1) AND organization_id = $2",
+    [name, orgId]
+  );
+  if (existing) return existing.id;
+  const created = await one<{ id: number }>(
+    "INSERT INTO departments (name, branch_id, organization_id) VALUES ($1,$2,$3) RETURNING id",
+    [name, branchId, orgId]
+  );
+  return created!.id;
+}
+
 const EMP_SELECT = `
   SELECT e.*, d.name as department_name, b.name as branch_name
   FROM employees e
@@ -108,6 +126,7 @@ router.post("/", requireRole("super_admin", "hr_manager"), async (req: AuthedReq
     if (!b.full_name) return res.status(400).json({ error: "Full name is required" });
     const code = await generateEmployeeCode(orgId);
     const branchId = await resolveBranchId(b.branch, orgId);
+    const departmentId = await resolveDepartmentId(b.department, orgId, branchId);
     const result = await pool.query(
       `INSERT INTO employees
         (employee_code, full_name, national_id, gender, dob, phone, email, address, emergency_contact,
@@ -118,7 +137,7 @@ router.post("/", requireRole("super_admin", "hr_manager"), async (req: AuthedReq
       [
         code, b.full_name, b.national_id || null, b.gender || null, b.dob || null, b.phone || null,
         b.email || null, b.address || null, b.emergency_contact || null, b.job_title || null,
-        b.department_id || null, branchId, orgId, b.employment_type || null, b.employment_category || null,
+        departmentId, branchId, orgId, b.employment_type || null, b.employment_category || null,
         b.date_hired || null, b.salary || 0, b.status || "Active", b.bank_details || null, b.kra_pin || null,
         b.nssf_number || null, b.sha_number || null, b.next_of_kin || null, b.photo_url || null,
       ]
@@ -141,16 +160,17 @@ router.put("/:id", requireRole("super_admin", "hr_manager"), async (req: AuthedR
 
     const fields = [
       "full_name", "national_id", "gender", "dob", "phone", "email", "address", "emergency_contact",
-      "job_title", "department_id", "employment_type", "employment_category", "date_hired",
+      "job_title", "employment_type", "employment_category", "date_hired",
       "salary", "bank_details", "kra_pin", "nssf_number", "sha_number", "next_of_kin", "photo_url",
     ];
     const values = fields.map((f) => (b[f] !== undefined ? b[f] : existing[f]));
     const branchId = b.branch !== undefined ? await resolveBranchId(b.branch, orgId) : existing.branch_id;
-    const setClauses = fields.map((f, i) => `${f} = $${i + 1}`).join(", ") + `, branch_id = $${fields.length + 1}`;
+    const departmentId = b.department !== undefined ? await resolveDepartmentId(b.department, orgId, branchId) : existing.department_id;
+    const setClauses = fields.map((f, i) => `${f} = $${i + 1}`).join(", ") + `, branch_id = $${fields.length + 1}, department_id = $${fields.length + 2}`;
 
     await pool.query(
-      `UPDATE employees SET ${setClauses}, updated_at = now() WHERE id = $${fields.length + 2} AND organization_id = $${fields.length + 3}`,
-      [...values, branchId, req.params.id, orgId]
+      `UPDATE employees SET ${setClauses}, updated_at = now() WHERE id = $${fields.length + 3} AND organization_id = $${fields.length + 4}`,
+      [...values, branchId, departmentId, req.params.id, orgId]
     );
     await logAudit(req, req.user!.name, "Employee Edited", `${existing.full_name} (${existing.employee_code})`, orgId);
     res.json({ ok: true });
