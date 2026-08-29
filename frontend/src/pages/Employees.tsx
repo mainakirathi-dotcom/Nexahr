@@ -6,11 +6,13 @@ import StatusBadge from "../components/StatusBadge";
 import Modal from "../components/Modal";
 import EmployeeForm from "../components/EmployeeForm";
 import type { EmployeeFormValues } from "../components/EmployeeForm";
+import { useToast } from "../context/ToastContext";
 
 const STATUSES = ["Active", "On Leave", "Suspended", "Resigned", "Dismissed", "Retired"];
 
 export default function Employees() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [employees, setEmployees] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -46,6 +48,7 @@ export default function Employees() {
   async function handleCreate(values: EmployeeFormValues) {
     await api.post("/employees", values);
     setShowAdd(false);
+    showToast(`${values.full_name} added.`);
     fetchEmployees();
   }
 

@@ -5,10 +5,12 @@ import { useOrg } from "../context/OrgContext";
 import { useAuth } from "../context/AuthContext";
 import Layout from "../components/Layout";
 import Modal from "../components/Modal";
+import { useToast } from "../context/ToastContext";
 
 export default function Companies() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const { organizations, loadingOrganizations, refreshOrganizations, setActiveOrg } = useOrg();
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
@@ -22,9 +24,14 @@ export default function Companies() {
 
   async function handleDelete() {
     if (!confirmDelete) return;
-    await api.delete(`/organizations/${confirmDelete.id}`);
-    setConfirmDelete(null);
-    refreshOrganizations();
+    try {
+      await api.delete(`/organizations/${confirmDelete.id}`);
+      showToast(`"${confirmDelete.name}" and all its data have been deleted.`);
+      setConfirmDelete(null);
+      refreshOrganizations();
+    } catch (e: any) {
+      showToast(e?.response?.data?.error || "Couldn't delete that company.", "error");
+    }
   }
 
   function startRename(id: number, currentName: string) {
@@ -34,9 +41,14 @@ export default function Companies() {
 
   async function saveRename(id: number) {
     if (!renameValue.trim()) { setRenamingId(null); return; }
-    await api.put(`/organizations/${id}`, { name: renameValue.trim() });
-    setRenamingId(null);
-    refreshOrganizations();
+    try {
+      await api.put(`/organizations/${id}`, { name: renameValue.trim() });
+      setRenamingId(null);
+      showToast("Company renamed.");
+      refreshOrganizations();
+    } catch (e: any) {
+      showToast(e?.response?.data?.error || "Couldn't rename that company.", "error");
+    }
   }
 
   return (

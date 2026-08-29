@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useOrg } from "../context/OrgContext";
-import LoginToast from "./LoginToast";
 import Logo from "./Logo";
 
 const NAV_ITEMS = [
@@ -40,7 +39,6 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-sand-50">
-      <LoginToast />
 
       {/* Mobile top bar — hidden on desktop */}
       <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-ink-900/5 bg-ink-950 px-4 py-3 text-sand-50 lg:hidden">

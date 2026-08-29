@@ -3,6 +3,7 @@ import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import Layout from "../components/Layout";
 import Modal from "../components/Modal";
+import { useToast } from "../context/ToastContext";
 
 interface Admin {
   id: number;
@@ -13,6 +14,7 @@ interface Admin {
 
 export default function Admins() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<Admin | null>(null);
@@ -32,6 +34,7 @@ export default function Admins() {
     setError(null);
     try {
       await api.delete(`/admins/${confirmDelete.id}`);
+      showToast(`${confirmDelete.name}'s admin access has been removed.`);
       setConfirmDelete(null);
       load();
     } catch (e: any) {

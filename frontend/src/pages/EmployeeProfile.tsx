@@ -12,6 +12,7 @@ import Modal from "../components/Modal";
 import EmployeeForm from "../components/EmployeeForm";
 import type { EmployeeFormValues } from "../components/EmployeeForm";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const TABS = ["Overview", "Performance", "Documents", "Career History"] as const;
@@ -20,6 +21,7 @@ export default function EmployeeProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [employee, setEmployee] = useState<any>(null);
   const [branches, setBranches] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -63,19 +65,30 @@ export default function EmployeeProfile() {
   async function handleEdit(values: EmployeeFormValues) {
     await api.put(`/employees/${id}`, values);
     setShowEdit(false);
+    showToast("Employee profile updated.");
     load();
   }
 
   async function handleStatusChange(status: string, reason: string) {
-    await api.post(`/employees/${id}/status`, { status, reason });
-    setShowStatus(false);
-    load();
+    try {
+      await api.post(`/employees/${id}/status`, { status, reason });
+      setShowStatus(false);
+      showToast(`Status changed to "${status}".`);
+      load();
+    } catch (e: any) {
+      showToast(e?.response?.data?.error || "Couldn't update status.", "error");
+    }
   }
 
   async function handleEval(year: number, month: number, score: number, notes: string) {
-    await api.post(`/performance/employee/${id}`, { year, month, score, notes });
-    setShowEval(false);
-    load();
+    try {
+      await api.post(`/performance/employee/${id}`, { year, month, score, notes });
+      setShowEval(false);
+      showToast("Evaluation saved.");
+      load();
+    } catch (e: any) {
+      showToast(e?.response?.data?.error || "Couldn't save that evaluation.", "error");
+    }
   }
 
   return (
@@ -367,6 +380,7 @@ function EvaluationModal({ open, onClose, onSubmit }: { open: boolean; onClose: 
 }
 
 function DocumentsPanel({ employeeId, docs, canEdit, onChange }: { employeeId: string; docs: any[]; canEdit: boolean; onChange: () => void }) {
+  const { showToast } = useToast();
   const [docType, setDocType] = useState("CV");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -375,18 +389,29 @@ function DocumentsPanel({ employeeId, docs, canEdit, onChange }: { employeeId: s
   async function handleUpload() {
     if (!file) return;
     setUploading(true);
-    const form = new FormData();
-    form.append("file", file);
-    form.append("doc_type", docType);
-    await api.post(`/documents/employee/${employeeId}`, form, { headers: { "Content-Type": "multipart/form-data" } });
-    setFile(null);
-    setUploading(false);
-    onChange();
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("doc_type", docType);
+      await api.post(`/documents/employee/${employeeId}`, form, { headers: { "Content-Type": "multipart/form-data" } });
+      setFile(null);
+      showToast(`"${file.name}" uploaded.`);
+      onChange();
+    } catch (e: any) {
+      showToast(e?.response?.data?.error || "Upload failed. Please try again.", "error");
+    } finally {
+      setUploading(false);
+    }
   }
 
-  async function handleDelete(id: number) {
-    await api.delete(`/documents/${id}`);
-    onChange();
+  async function handleDelete(id: number, name: string) {
+    try {
+      await api.delete(`/documents/${id}`);
+      showToast(`"${name}" deleted.`);
+      onChange();
+    } catch (e: any) {
+      showToast(e?.response?.data?.error || "Couldn't delete that document.", "error");
+    }
   }
 
   // The file lives in Postgres behind the same JWT auth as every other request, so a
@@ -431,7 +456,7 @@ function DocumentsPanel({ employeeId, docs, canEdit, onChange }: { employeeId: s
                 <button onClick={() => handleView(d)} disabled={openingId === d.id} className="text-xs font-medium text-teal-600 hover:underline disabled:opacity-50">
                   {openingId === d.id ? "Opening…" : "View"}
                 </button>
-                {canEdit && <button onClick={() => handleDelete(d.id)} className="text-xs font-medium text-red-500 hover:underline">Delete</button>}
+                {canEdit && <button onClick={() => handleDelete(d.id, d.original_name)} className="text-xs font-medium text-red-500 hover:underline">Delete</button>}
               </div>
             </div>
           ))}

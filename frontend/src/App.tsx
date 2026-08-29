@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { OrgProvider, useOrg } from "./context/OrgContext";
+import { ToastProvider } from "./context/ToastContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
@@ -38,23 +39,25 @@ function RequireOrgSelected({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <OrgProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><RequireOrgSelected><Dashboard /></RequireOrgSelected></ProtectedRoute>} />
-            <Route path="/employees" element={<ProtectedRoute><RequireOrgSelected><Employees /></RequireOrgSelected></ProtectedRoute>} />
-            <Route path="/employees/:id" element={<ProtectedRoute><RequireOrgSelected><EmployeeProfile /></RequireOrgSelected></ProtectedRoute>} />
-            <Route path="/performance" element={<ProtectedRoute><RequireOrgSelected><Performance /></RequireOrgSelected></ProtectedRoute>} />
-            <Route path="/settings" element={<AdminRoute><RequireOrgSelected><Settings /></RequireOrgSelected></AdminRoute>} />
-            <Route path="/audit-log" element={<AdminRoute><RequireOrgSelected><AuditLog /></RequireOrgSelected></AdminRoute>} />
-            <Route path="/companies" element={<AdminRoute><Companies /></AdminRoute>} />
-            <Route path="/admins" element={<AdminRoute><Admins /></AdminRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </OrgProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <OrgProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<ProtectedRoute><RequireOrgSelected><Dashboard /></RequireOrgSelected></ProtectedRoute>} />
+              <Route path="/employees" element={<ProtectedRoute><RequireOrgSelected><Employees /></RequireOrgSelected></ProtectedRoute>} />
+              <Route path="/employees/:id" element={<ProtectedRoute><RequireOrgSelected><EmployeeProfile /></RequireOrgSelected></ProtectedRoute>} />
+              <Route path="/performance" element={<ProtectedRoute><RequireOrgSelected><Performance /></RequireOrgSelected></ProtectedRoute>} />
+              <Route path="/settings" element={<AdminRoute><RequireOrgSelected><Settings /></RequireOrgSelected></AdminRoute>} />
+              <Route path="/audit-log" element={<AdminRoute><RequireOrgSelected><AuditLog /></RequireOrgSelected></AdminRoute>} />
+              <Route path="/companies" element={<AdminRoute><Companies /></AdminRoute>} />
+              <Route path="/admins" element={<AdminRoute><Admins /></AdminRoute>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </OrgProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

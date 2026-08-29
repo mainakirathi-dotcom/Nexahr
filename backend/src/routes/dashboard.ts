@@ -34,16 +34,23 @@ router.get("/stats", async (req: AuthedRequest, res, next) => {
       [orgId, mmdd]
     );
 
-    const genderDist = await many("SELECT gender, COUNT(*) c FROM employees WHERE organization_id = $1 GROUP BY gender", [orgId]);
-    const branchDist = await many(`
-      SELECT b.name, COUNT(e.id) c FROM branches b LEFT JOIN employees e ON e.branch_id = b.id
-      WHERE b.organization_id = $1 GROUP BY b.id, b.name`, [orgId]);
-    const deptDist = await many(`
-      SELECT d.name, COUNT(e.id) c FROM departments d LEFT JOIN employees e ON e.department_id = d.id
-      WHERE d.organization_id = $1 GROUP BY d.id, d.name`, [orgId]);
-    const statusDist = await many("SELECT status, COUNT(*) c FROM employees WHERE organization_id = $1 GROUP BY status", [orgId]);
+    const genderDist = (await many<any>(
+      "SELECT COALESCE(NULLIF(gender, ''), 'Not specified') as gender, COUNT(*) c FROM employees WHERE organization_id = $1 GROUP BY COALESCE(NULLIF(gender, ''), 'Not specified')",
+      [orgId]
+    )).map((r) => ({ gender: r.gender, c: Number(r.c) }));
 
-    const salaryBuckets = await many(`
+    const branchDist = (await many<any>(`
+      SELECT b.name, COUNT(e.id) c FROM branches b LEFT JOIN employees e ON e.branch_id = b.id
+      WHERE b.organization_id = $1 GROUP BY b.id, b.name`, [orgId])).map((r) => ({ name: r.name, c: Number(r.c) }));
+
+    const deptDist = (await many<any>(`
+      SELECT d.name, COUNT(e.id) c FROM departments d LEFT JOIN employees e ON e.department_id = d.id
+      WHERE d.organization_id = $1 GROUP BY d.id, d.name`, [orgId])).map((r) => ({ name: r.name, c: Number(r.c) }));
+
+    const statusDist = (await many<any>("SELECT status, COUNT(*) c FROM employees WHERE organization_id = $1 GROUP BY status", [orgId]))
+      .map((r) => ({ status: r.status, c: Number(r.c) }));
+
+    const salaryBuckets = (await many<any>(`
       SELECT
         CASE
           WHEN salary < 40000 THEN 'Under 40K'
@@ -53,12 +60,12 @@ router.get("/stats", async (req: AuthedRequest, res, next) => {
           ELSE '100K+'
         END as bucket,
         COUNT(*) as c
-      FROM employees WHERE organization_id = $1 GROUP BY bucket`, [orgId]);
+      FROM employees WHERE organization_id = $1 GROUP BY bucket`, [orgId])).map((r) => ({ bucket: r.bucket, c: Number(r.c) }));
 
-    const hiringTrend = await many(`
+    const hiringTrend = (await many<any>(`
       SELECT TO_CHAR(date_hired, 'YYYY-MM') as ym, COUNT(*) c
       FROM employees WHERE organization_id = $1 AND date_hired IS NOT NULL
-      GROUP BY ym ORDER BY ym`, [orgId]);
+      GROUP BY ym ORDER BY ym`, [orgId])).map((r) => ({ ym: r.ym, c: Number(r.c) }));
 
     const growthTrend = await many<any>(`
       SELECT TO_CHAR(date_hired, 'YYYY-MM') as ym, COUNT(*) c

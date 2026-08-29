@@ -2,9 +2,15 @@ import { useEffect, useState } from "react";
 import api from "../api/client";
 import Layout from "../components/Layout";
 import { useOrg } from "../context/OrgContext";
+import { useToast } from "../context/ToastContext";
+
+function errMsg(e: any, fallback: string) {
+  return e?.response?.data?.error || fallback;
+}
 
 export default function Settings() {
   const { isPlatformAdmin, activeOrgName } = useOrg();
+  const { showToast } = useToast();
   const [branches, setBranches] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -26,30 +32,82 @@ export default function Settings() {
 
   async function addBranch() {
     if (!newBranch.trim()) return;
-    await api.post("/org/branches", { name: newBranch, location: newBranchLoc });
-    setNewBranch(""); setNewBranchLoc(""); loadAll();
+    try {
+      await api.post("/org/branches", { name: newBranch, location: newBranchLoc });
+      setNewBranch(""); setNewBranchLoc("");
+      showToast(`"${newBranch}" branch added.`);
+      loadAll();
+    } catch (e: any) {
+      showToast(errMsg(e, "Couldn't add that branch."), "error");
+    }
   }
+
   async function addDept() {
     if (!newDept.trim()) return;
-    await api.post("/org/departments", { name: newDept, branch_id: newDeptBranch || null });
-    setNewDept(""); setNewDeptBranch(""); loadAll();
+    try {
+      await api.post("/org/departments", { name: newDept, branch_id: newDeptBranch || null });
+      setNewDept(""); setNewDeptBranch("");
+      showToast(`"${newDept}" department added.`);
+      loadAll();
+    } catch (e: any) {
+      showToast(errMsg(e, "Couldn't add that department."), "error");
+    }
   }
+
   async function addUser() {
     if (!newUser.name || !newUser.email || !newUser.password) return;
-    await api.post("/users", { ...newUser, role: "hr_manager" });
-    setNewUser({ name: "", email: "", password: "" }); loadAll();
+    try {
+      await api.post("/users", { ...newUser, role: "hr_manager" });
+      showToast(`HR account created for ${newUser.name}.`);
+      setNewUser({ name: "", email: "", password: "" });
+      loadAll();
+    } catch (e: any) {
+      showToast(errMsg(e, "Couldn't create that HR account."), "error");
+    }
   }
-  async function removeBranch(id: number) { await api.delete(`/org/branches/${id}`); loadAll(); }
-  async function removeDept(id: number) { await api.delete(`/org/departments/${id}`); loadAll(); }
-  async function removeUser(id: number) { await api.delete(`/users/${id}`); loadAll(); }
+
+  async function removeBranch(id: number, name: string) {
+    try {
+      await api.delete(`/org/branches/${id}`);
+      showToast(`"${name}" branch removed.`);
+      loadAll();
+    } catch (e: any) {
+      showToast(errMsg(e, `Couldn't remove "${name}". It may still have employees assigned to it.`), "error");
+    }
+  }
+
+  async function removeDept(id: number, name: string) {
+    try {
+      await api.delete(`/org/departments/${id}`);
+      showToast(`"${name}" department removed.`);
+      loadAll();
+    } catch (e: any) {
+      showToast(errMsg(e, `Couldn't remove "${name}".`), "error");
+    }
+  }
+
+  async function removeUser(id: number, name: string) {
+    try {
+      await api.delete(`/users/${id}`);
+      showToast(`${name}'s access has been removed.`);
+      loadAll();
+    } catch (e: any) {
+      showToast(errMsg(e, `Couldn't remove ${name}.`), "error");
+    }
+  }
 
   async function downloadReport(path: string) {
-    const res = await api.get(path, { responseType: "blob" });
-    const url = URL.createObjectURL(res.data);
-    const a = document.createElement("a");
-    const baseName = path.split("/").pop()?.split("?")[0] || "report";
-    a.href = url; a.download = `${baseName}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    try {
+      const res = await api.get(path, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      const baseName = path.split("/").pop()?.split("?")[0] || "report";
+      a.href = url; a.download = `${baseName}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+      showToast("Report downloaded.");
+    } catch {
+      showToast("Report download failed. Please check your connection and try again.", "error");
+    }
   }
 
   async function downloadBackup() {
@@ -62,8 +120,9 @@ export default function Settings() {
       a.download = `nexahr-backup-${(activeOrgName || "company").toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      showToast("Backup downloaded.");
     } catch {
-      alert("Backup download failed. Please check your connection and try again.");
+      showToast("Backup download failed. Please check your connection and try again.", "error");
     } finally {
       setBackingUp(false);
     }
@@ -87,14 +146,18 @@ export default function Settings() {
             <input value={newBranchLoc} onChange={(e) => setNewBranchLoc(e.target.value)} placeholder="Location" className="focus-ring w-32 rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
             <button onClick={addBranch} className="focus-ring rounded-lg bg-ink-950 px-3 py-2 text-sm font-semibold text-sand-50 hover:opacity-90">Add</button>
           </div>
-          <ul className="mt-3 divide-y divide-ink-900/5">
-            {branches.map((b) => (
-              <li key={b.id} className="flex items-center justify-between py-2 text-sm">
-                <span>{b.name} <span className="text-ink-900/40">· {b.location || "—"} · {b.employee_count} employees</span></span>
-                <button onClick={() => removeBranch(b.id)} className="text-xs font-medium text-red-500 hover:underline">Remove</button>
-              </li>
-            ))}
-          </ul>
+          {branches.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-900/40">No branches yet.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-ink-900/5">
+              {branches.map((b) => (
+                <li key={b.id} className="flex items-center justify-between py-2 text-sm">
+                  <span>{b.name} <span className="text-ink-900/40">· {b.location || "—"} · {b.employee_count} employees</span></span>
+                  <button onClick={() => removeBranch(b.id, b.name)} className="text-xs font-medium text-red-500 hover:underline">Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Departments */}
@@ -108,14 +171,18 @@ export default function Settings() {
             </select>
             <button onClick={addDept} className="focus-ring rounded-lg bg-ink-950 px-3 py-2 text-sm font-semibold text-sand-50 hover:opacity-90">Add</button>
           </div>
-          <ul className="mt-3 divide-y divide-ink-900/5">
-            {departments.map((d) => (
-              <li key={d.id} className="flex items-center justify-between py-2 text-sm">
-                <span>{d.name} <span className="text-ink-900/40">· {d.branch_name || "—"} · {d.employee_count} employees</span></span>
-                <button onClick={() => removeDept(d.id)} className="text-xs font-medium text-red-500 hover:underline">Remove</button>
-              </li>
-            ))}
-          </ul>
+          {departments.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-900/40">No departments yet.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-ink-900/5">
+              {departments.map((d) => (
+                <li key={d.id} className="flex items-center justify-between py-2 text-sm">
+                  <span>{d.name} <span className="text-ink-900/40">· {d.branch_name || "—"} · {d.employee_count} employees</span></span>
+                  <button onClick={() => removeDept(d.id, d.name)} className="text-xs font-medium text-red-500 hover:underline">Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* HR Accounts */}
@@ -130,14 +197,18 @@ export default function Settings() {
             <input value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="Temp password" type="password" className="focus-ring w-36 rounded-lg border border-ink-900/10 px-3 py-2 text-sm outline-none" />
             <button onClick={addUser} className="focus-ring rounded-lg bg-midnight-500 px-4 py-2 text-sm font-semibold text-white hover:bg-midnight-400">Create HR account</button>
           </div>
-          <ul className="mt-4 divide-y divide-ink-900/5">
-            {users.map((u) => (
-              <li key={u.id} className="flex items-center justify-between py-2 text-sm">
-                <span>{u.name} <span className="text-ink-900/40">· {u.email} · {u.role.replace("_", " ")}</span></span>
-                <button onClick={() => removeUser(u.id)} className="text-xs font-medium text-red-500 hover:underline">Remove</button>
-              </li>
-            ))}
-          </ul>
+          {users.length === 0 ? (
+            <p className="mt-4 text-sm text-ink-900/40">No HR accounts yet.</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-ink-900/5">
+              {users.map((u) => (
+                <li key={u.id} className="flex items-center justify-between py-2 text-sm">
+                  <span>{u.name} <span className="text-ink-900/40">· {u.email} · {u.role.replace("_", " ")}</span></span>
+                  <button onClick={() => removeUser(u.id, u.name)} className="text-xs font-medium text-red-500 hover:underline">Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Full data backup */}

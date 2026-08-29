@@ -2,12 +2,13 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { flagLoginToast } from "../components/LoginToast";
+import { useToast } from "../context/ToastContext";
 import Logo from "../components/Logo";
 
 export default function Login() {
   const { login, loading, error } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -17,7 +18,7 @@ export default function Login() {
     e.preventDefault();
     try {
       await login(email, password, remember);
-      flagLoginToast();
+      showToast("Login successful!");
       navigate("/");
     } catch {
       // error is surfaced via context
