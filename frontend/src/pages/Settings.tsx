@@ -20,6 +20,10 @@ export default function Settings() {
   const [newDeptBranch, setNewDeptBranch] = useState("");
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "" });
   const [backingUp, setBackingUp] = useState(false);
+  const [renamingBranchId, setRenamingBranchId] = useState<number | null>(null);
+  const [renameBranchValue, setRenameBranchValue] = useState("");
+  const [renamingDeptId, setRenamingDeptId] = useState<number | null>(null);
+  const [renameDeptValue, setRenameDeptValue] = useState("");
 
   async function loadAll() {
     const [b, d, u] = await Promise.all([
@@ -73,6 +77,40 @@ export default function Settings() {
       loadAll();
     } catch (e: any) {
       showToast(errMsg(e, `Couldn't remove "${name}". It may still have employees assigned to it.`), "error");
+    }
+  }
+
+  function startRenameBranch(id: number, currentName: string) {
+    setRenamingBranchId(id);
+    setRenameBranchValue(currentName);
+  }
+
+  async function saveRenameBranch(id: number, location: string | null) {
+    if (!renameBranchValue.trim()) { setRenamingBranchId(null); return; }
+    try {
+      await api.put(`/org/branches/${id}`, { name: renameBranchValue.trim(), location });
+      setRenamingBranchId(null);
+      showToast("Branch renamed.");
+      loadAll();
+    } catch (e: any) {
+      showToast(errMsg(e, "Couldn't rename that branch."), "error");
+    }
+  }
+
+  function startRenameDept(id: number, currentName: string) {
+    setRenamingDeptId(id);
+    setRenameDeptValue(currentName);
+  }
+
+  async function saveRenameDept(id: number, branchId: number | null) {
+    if (!renameDeptValue.trim()) { setRenamingDeptId(null); return; }
+    try {
+      await api.put(`/org/departments/${id}`, { name: renameDeptValue.trim(), branch_id: branchId });
+      setRenamingDeptId(null);
+      showToast("Department renamed.");
+      loadAll();
+    } catch (e: any) {
+      showToast(errMsg(e, "Couldn't rename that department."), "error");
     }
   }
 
@@ -151,9 +189,27 @@ export default function Settings() {
           ) : (
             <ul className="mt-3 divide-y divide-ink-900/5">
               {branches.map((b) => (
-                <li key={b.id} className="flex items-center justify-between py-2 text-sm">
-                  <span>{b.name} <span className="text-ink-900/40">· {b.location || "—"} · {b.employee_count} employees</span></span>
-                  <button onClick={() => removeBranch(b.id, b.name)} className="text-xs font-medium text-red-500 hover:underline">Remove</button>
+                <li key={b.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                  {renamingBranchId === b.id ? (
+                    <div className="flex flex-1 items-center gap-2">
+                      <input
+                        autoFocus
+                        value={renameBranchValue}
+                        onChange={(e) => setRenameBranchValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveRenameBranch(b.id, b.location); if (e.key === "Escape") setRenamingBranchId(null); }}
+                        className="focus-ring w-full rounded-lg border border-ink-900/10 px-2 py-1 text-sm outline-none"
+                      />
+                      <button onClick={() => saveRenameBranch(b.id, b.location)} className="focus-ring shrink-0 rounded-lg bg-ink-950 px-2 py-1 text-xs font-semibold text-sand-50">Save</button>
+                      <button onClick={() => setRenamingBranchId(null)} className="shrink-0 text-xs font-medium text-ink-900/40 hover:underline">Cancel</button>
+                    </div>
+                  ) : (
+                    <>
+                      <button onClick={() => startRenameBranch(b.id, b.name)} className="group flex-1 text-left hover:underline">
+                        {b.name} <span className="text-ink-900/40">· {b.location || "—"} · {b.employee_count} employees</span>
+                      </button>
+                      <button onClick={() => removeBranch(b.id, b.name)} className="shrink-0 text-xs font-medium text-red-500 hover:underline">Remove</button>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -176,9 +232,27 @@ export default function Settings() {
           ) : (
             <ul className="mt-3 divide-y divide-ink-900/5">
               {departments.map((d) => (
-                <li key={d.id} className="flex items-center justify-between py-2 text-sm">
-                  <span>{d.name} <span className="text-ink-900/40">· {d.branch_name || "—"} · {d.employee_count} employees</span></span>
-                  <button onClick={() => removeDept(d.id, d.name)} className="text-xs font-medium text-red-500 hover:underline">Remove</button>
+                <li key={d.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                  {renamingDeptId === d.id ? (
+                    <div className="flex flex-1 items-center gap-2">
+                      <input
+                        autoFocus
+                        value={renameDeptValue}
+                        onChange={(e) => setRenameDeptValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveRenameDept(d.id, d.branch_id); if (e.key === "Escape") setRenamingDeptId(null); }}
+                        className="focus-ring w-full rounded-lg border border-ink-900/10 px-2 py-1 text-sm outline-none"
+                      />
+                      <button onClick={() => saveRenameDept(d.id, d.branch_id)} className="focus-ring shrink-0 rounded-lg bg-ink-950 px-2 py-1 text-xs font-semibold text-sand-50">Save</button>
+                      <button onClick={() => setRenamingDeptId(null)} className="shrink-0 text-xs font-medium text-ink-900/40 hover:underline">Cancel</button>
+                    </div>
+                  ) : (
+                    <>
+                      <button onClick={() => startRenameDept(d.id, d.name)} className="group flex-1 text-left hover:underline">
+                        {d.name} <span className="text-ink-900/40">· {d.branch_name || "—"} · {d.employee_count} employees</span>
+                      </button>
+                      <button onClick={() => removeDept(d.id, d.name)} className="shrink-0 text-xs font-medium text-red-500 hover:underline">Remove</button>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

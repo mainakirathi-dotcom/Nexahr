@@ -40,6 +40,30 @@ router.post("/branches", requireRole("super_admin", "hr_manager"), async (req: A
   }
 });
 
+router.put("/branches/:id", requireRole("super_admin", "hr_manager"), async (req: AuthedRequest, res, next) => {
+  try {
+    const orgId = requireOrgScope(req, res);
+    if (orgId === null) return;
+    const { name, location } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: "Branch name is required" });
+
+    const existing = await many<any>("SELECT * FROM branches WHERE id = $1 AND organization_id = $2", [req.params.id, orgId]);
+    if (existing.length === 0) return res.status(404).json({ error: "Branch not found" });
+    const before = existing[0];
+
+    await pool.query(
+      "UPDATE branches SET name = $1, location = $2 WHERE id = $3 AND organization_id = $4",
+      [name.trim(), location !== undefined ? location : before.location, req.params.id, orgId]
+    );
+    const detail = before.name !== name.trim() ? `"${before.name}" renamed to "${name.trim()}"` : `"${name.trim()}" updated`;
+    await logAudit(req, req.user!.name, "Branch Renamed", detail, orgId);
+    res.json({ ok: true });
+  } catch (e: any) {
+    if (e.code === "23505") return res.status(400).json({ error: "A branch with that name already exists for this company" });
+    next(e);
+  }
+});
+
 router.delete("/branches/:id", requireRole("super_admin"), async (req: AuthedRequest, res, next) => {
   try {
     await pool.query("DELETE FROM branches WHERE id = $1", [req.params.id]);
@@ -75,6 +99,27 @@ router.post("/departments", requireRole("super_admin", "hr_manager"), async (req
     );
     await logAudit(req, req.user!.name, "Department Created", name, orgId);
     res.status(201).json({ id: result.rows[0].id });
+  } catch (e) { next(e); }
+});
+
+router.put("/departments/:id", requireRole("super_admin", "hr_manager"), async (req: AuthedRequest, res, next) => {
+  try {
+    const orgId = requireOrgScope(req, res);
+    if (orgId === null) return;
+    const { name, branch_id } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: "Department name is required" });
+
+    const existing = await many<any>("SELECT * FROM departments WHERE id = $1 AND organization_id = $2", [req.params.id, orgId]);
+    if (existing.length === 0) return res.status(404).json({ error: "Department not found" });
+    const before = existing[0];
+
+    await pool.query(
+      "UPDATE departments SET name = $1, branch_id = $2 WHERE id = $3 AND organization_id = $4",
+      [name.trim(), branch_id !== undefined ? (branch_id || null) : before.branch_id, req.params.id, orgId]
+    );
+    const detail = before.name !== name.trim() ? `"${before.name}" renamed to "${name.trim()}"` : `"${name.trim()}" updated`;
+    await logAudit(req, req.user!.name, "Department Renamed", detail, orgId);
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 
