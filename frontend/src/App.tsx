@@ -1,16 +1,19 @@
+import InstallPrompt from "./components/InstallPrompt";
+import { lazy, Suspense } from "react";
+import SlowNotice from "./components/SlowNotice";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { OrgProvider, useOrg } from "./context/OrgContext";
 import { ToastProvider } from "./context/ToastContext";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Employees from "./pages/Employees";
-import EmployeeProfile from "./pages/EmployeeProfile";
-import Performance from "./pages/Performance";
-import Settings from "./pages/Settings";
-import AuditLog from "./pages/AuditLog";
-import Companies from "./pages/Companies";
-import Admins from "./pages/Admins";
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Employees = lazy(() => import("./pages/Employees"));
+const EmployeeProfile = lazy(() => import("./pages/EmployeeProfile"));
+const Performance = lazy(() => import("./pages/Performance"));
+const Settings = lazy(() => import("./pages/Settings"));
+const AuditLog = lazy(() => import("./pages/AuditLog"));
+const Companies = lazy(() => import("./pages/Companies"));
+const Admins = lazy(() => import("./pages/Admins"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -43,6 +46,7 @@ export default function App() {
       <AuthProvider>
         <OrgProvider>
           <BrowserRouter>
+            <Suspense fallback={<div className="flex h-screen items-center justify-center text-sm text-ink-900/60">Loading…</div>}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={<ProtectedRoute><RequireOrgSelected><Dashboard /></RequireOrgSelected></ProtectedRoute>} />
@@ -55,7 +59,10 @@ export default function App() {
               <Route path="/admins" element={<AdminRoute><Admins /></AdminRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
+          <InstallPrompt />
+          <SlowNotice />
         </OrgProvider>
       </AuthProvider>
     </ToastProvider>

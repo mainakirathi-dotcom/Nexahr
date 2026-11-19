@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-sand-50">
 
       {/* Mobile top bar — hidden on desktop */}
-      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-ink-900/5 bg-ink-950 px-4 py-3 text-sand-50 lg:hidden">
+      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-ink-900/5 bg-ink-950 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-sand-50 lg:hidden">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center">
             <Logo size={28} />
@@ -192,7 +192,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">
+      <main className="flex-1 overflow-y-auto pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
       </main>
     </div>

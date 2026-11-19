@@ -14,7 +14,13 @@ const wantsSSL =
 export const pool = new Pool({
   connectionString,
   ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 20_000, // Neon may need a few seconds to wake from sleep
+  keepAlive: true,
 });
+// A dropped idle connection must never crash the server
+pool.on("error", (e) => console.error("Idle DB client error:", e.message));
 
 export async function query<T extends QueryResultRow = any>(text: string, params: any[] = []) {
   return pool.query<T>(text, params);
@@ -189,6 +195,21 @@ export async function initSchema() {
   await pool.query(`ALTER TABLE branches ALTER COLUMN organization_id SET NOT NULL;`).catch(() => {});
   await pool.query(`ALTER TABLE departments ALTER COLUMN organization_id SET NOT NULL;`).catch(() => {});
   await pool.query(`ALTER TABLE employees ALTER COLUMN organization_id SET NOT NULL;`).catch(() => {});
+
+  // Indexes: make list/dashboard/audit lookups fast as data grows
+  const indexes = [
+    `CREATE INDEX IF NOT EXISTS idx_employees_org ON employees(organization_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_employees_branch ON employees(branch_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_employees_dept ON employees(department_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_branches_org ON branches(organization_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_departments_org ON departments(organization_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_users_org ON users(organization_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_perf_employee ON performance_evals(employee_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_status_employee ON status_history(employee_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_documents_employee ON documents(employee_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_audit_org_time ON audit_log(organization_id, created_at DESC)`,
+  ];
+  for (const sql of indexes) await pool.query(sql).catch((e) => console.warn("Index skipped:", e.message));
 }
 
 export default pool;
